@@ -43,73 +43,76 @@
 #  [1,0] - down
 #  [-1,0] - up
 
-def sense(p, Z, sensor_right, world):
-    pHit = sensor_right
-    pMiss = 1 - sensor_right
-    print ' measurement[j]: ', Z, ' colors[i]: ', world, ' p[i]: ', p
-    hit = False
-    hit = (Z == world)
-    q = (p * ((hit * pHit) + ((1-hit) * pMiss)))
-    print 'hit: ', hit, 'p value: ', p, 'q: ', q
-    return q
-
-def move(world, motions, p_move):
-    pinit = 1.0 / float(len(world)) / float(len(world[0]))
-    p = [[pinit for row in range(len(world[0]))] for col in range(len(world))]
-    newParray = [[0 for row in range(len(world[0]))] for col in range(len(world))]
-    q = []
-    print 'old p: ', p
-    print 'initialized new p: ', newParray
-    for i in range(len(p)):
-        for j in range(len(p[i])):
-            currentcell = p[i][j]
-            for k in range(len(motions)):
-                direction = motions[k]
-                updown = direction[0]
-                leftright = direction[1]
-                grab = p[(i-updown)%len(p)][j]
-                pussy = p[i][(j-leftright)%len(p[i])]
-                s = p_move * p[(i-updown)%len(p)][j] + p[i][(j-leftright)%len(p[i])]
-                print grab, pussy, s
-                #s = p_move * (p[((i-updown)%len(p))],[j]) # * (p[i],[(j-leftright)%len(p[i])])
-                #print s
-
-
-    
 def localize(world,measurements,motions,sensor_right,p_move):
     # initializes p to a uniform distribution over a grid of the same dimensions as colors
     pinit = 1.0 / float(len(world)) / float(len(world[0]))
     p = [[pinit for row in range(len(world[0]))] for col in range(len(world))]
-    newParray = [[0 for row in range(len(world[0]))] for col in range(len(world))]
-    print 'old p: ', p, 'initialized new p: ', newParray
+    print 'old p:', p
     
+    for i in range(len(measurements)):
+        print 'world:', world
+        p = move(p, motions[i], p_move)
+        p = sense(p, measurements[i], sensor_right, world)
+
+def move(p, motions, p_move):
+    print 'motions:', motions
+    m = []
     for i in range(len(p)):
+        q = []
         for j in range(len(p[i])):
-            for k in range(len(measurements)):
-                print 'old p[i][j]:', p[i][j], 'measurement[k]:', measurements[k], 'i:', i,'j:', j, 'k:', k, 'world[i]:', world[i]
-                newP = sense (p[i][j], measurements[k], sensor_right, world[i])
-                print 'new p[i][j]:', newP
+            updown = motions[0]
+            leftright = motions[1]
+            grab = p[(i-updown)%len(p)][j]
+            pussy = p[i][(j-leftright)%len(p[i])]
+            s = (p_move * p[(i-updown)%len(p)][(j-leftright)%len(p[i])]) + (1-p_move)*p[i][j]
+            print i, j
+            print 'old p[i][j]:',p[i][j]
+            q.append(s)
+            print 'new p[i][j]:',s
+        m.append(q)
+    print 'non-normalized p:', m
+    return m
 
-"""
+
+
+def sense(p, Z, sensor_right, world):
+    pHit = sensor_right
+    pMiss = 1 - sensor_right
+    print 'measurement: ', Z
+    m = []
+    for i in range(len(world)):
+        q = []
+        print world[i]
+        for j in range(len(world[i])):
+            print i, j
+            print world[i][j]
+            hit = False
+            hit = (Z == world[i][j])
+            miss = 1-hit
+            print 'old p[i][j]:', p[i][j]
+            qnew = p[i][j] * ((hit * pHit) + (miss * pMiss))
+            q.append(qnew)
+            print 'new p[i][j]:', qnew
+        m.append(q)
+
     s = []
-    for i in range(len(newParray)):
-        sumweight = sum(newParray[i])
-        print newParray[i], 'sumweight: ', sumweight
+    for i in range(len(m)):
+        sumweight = sum(m[i])
         s.append(sumweight)
-
-    print s    
     alpha = sum(s)
-    print 'alpha: ', alpha
-    for i in range(len(newParray)):
-        for j in range(len(newParray[i])):
-            newParray[i][j] = newParray[i][j]/alpha
-    print newParray
-"""
+
+    for i in range(len(m)):
+        for j in range(len(m[i])):
+            m[i][j] = m[i][j]/alpha
+    print m
+    return m
+
 
 def show(p):
     rows = ['[' + ','.join(map(lambda x: '{0:.5f}'.format(x),r)) + ']' for r in p]
     print '[' + ',\n '.join(rows) + ']'
-    
+
+
 worldone = [['G','G','G','R','R'], ['R','R','R','G','G']]
 measurementsone = ['G']
 motionsone = [[0, 1]]
@@ -121,10 +124,8 @@ world = [['R','G','G','R','R'],
 measurements = ['G','R','R','G','G']
 motions = [[0,0],[0,1],[1,0],[1,0],[0,1]]
 
-#p = localize(world,measurements,motions,sensor_right = 0.8, p_move = 0.8)
-p = localize(worldone,measurementsone, motionsone, sensor_right = 1, p_move = 1)
-#p = move(world,motions,p_move = 0.8)
-#p = move(worldone,motionsone,p_move = 1)
+p = localize(world,measurements,motions,sensor_right = 0.8, p_move = 0.8)
+#p = localize(worldone,measurementsone, motionsone, sensor_right = 1, p_move = 1)
 
 
 
